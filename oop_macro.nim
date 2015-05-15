@@ -1,23 +1,26 @@
 import macros
+import strutils
 
 {.hint[XDeclaredButNotUsed]: off.}
 
-macro new*(obj: expr): expr {.immediate.}=
-    ## Replaces the new keyword to call an init
-    ## function if it exists
+macro new_class*(obj: untyped): untyped=
+    ## Creates a new instance of the class
+    ## and calls the init() method on it
     quote do:
         var init_obj = `obj`
         when compiles(init_obj.init()):
             init_obj.init()
         init_obj
 
-macro class*(head: expr, body: stmt): stmt {.immediate.} =
+
+macro class*(head: untyped, body: untyped): untyped=
   # The macro is immediate so that it doesn't
   # resolve identifiers passed to it
 
   # object reference name inside methods.
   # ie: self, self
   let obj_reference = "self"
+  var export_class: bool = false # whether or not to export the class to other modules
 
   var typeName, baseName: PNimrodNode
 
@@ -39,6 +42,21 @@ macro class*(head: expr, body: stmt): stmt {.immediate.} =
     typeName = head[1]
     baseName = head[2]
 
+  elif head.kind == nnkInfix and $head[0] == "*" and $head[1] == "of":
+      # echo head.treeRepr
+      # -----------
+      # Infix
+      #  Ident !"*"
+      #  Ident !"Animal"
+      #  Prefix
+      #    Ident !"of"
+      #    Ident !"RootObj"
+      export_class = true
+      typeName = head[1]
+      baseName = head[2][1]
+  elif head.kind == nnkInfix and $head[0] == "*":
+      export_class = true
+      typeName = head[1]
   else:
     quit "Invalid node: " & head.lispRepr
 
@@ -106,10 +124,22 @@ macro class*(head: expr, body: stmt): stmt {.immediate.} =
 
         # forward declare the inheritable method
         let n2 = copyNimTree(n)
-        let proc_name = $(n2.name.toStrLit())
         let type_name = $(typeName.toStrLit())
-        let new_name = ident(proc_name & type_name)
-        n2.name = new_name
+        var proc_name = ""
+
+        if n2.name.kind == nnkIdent:
+            proc_name = $(n2.name.toStrLit())
+            n2.name = ident(proc_name & type_name)
+        elif n2.name.kind == nnkPostFix:
+            if n2.name[1].kind == nnkIdent:
+                proc_name = $(n2.name[1].toStrLit())
+                n2.name[1] = ident(proc_name & type_name)
+            elif n2.name[1].kind == nnkAccQuoted:
+                proc_name = $(n2.name[1][0].toStrLit())
+                n2.name[1][0] = ident(proc_name & type_name)
+        elif n2.name.kind == nnkAccQuoted:
+            proc_name = $(n2.name[0].toStrLit())
+            n2.name[0] = ident(proc_name & type_name)
         result.add(n2)
       else:
           discard
@@ -127,10 +157,25 @@ macro class*(head: expr, body: stmt): stmt {.immediate.} =
         # ie: procName_ClassName()
         let n2 = copyNimTree(node)
         n2.params.insert(1, newIdentDefs(ident(obj_reference), typeName))
-        let proc_name = $(n2.name.toStrLit())
+
         let type_name = $(typeName.toStrLit())
-        let new_name = ident(proc_name & type_name)
-        n2.name = new_name
+        var proc_name = $(n2.name.toStrLit())
+        var is_assignment = proc_name.contains("=")
+
+        if n2.name.kind == nnkIdent:
+            proc_name = $(n2.name.toStrLit())
+            n2.name = ident(proc_name & type_name)
+        elif n2.name.kind == nnkPostFix:
+            if n2.name[1].kind == nnkIdent:
+                proc_name = $(n2.name[1].toStrLit())
+                n2.name[1] = ident(proc_name & type_name)
+            elif n2.name[1].kind == nnkAccQuoted:
+                proc_name = $(n2.name[1][0].toStrLit())
+                n2.name[1][0] = ident(proc_name & type_name)
+        elif n2.name.kind == nnkAccQuoted:
+            proc_name = $(n2.name[0].toStrLit())
+            n2.name[0] = ident(proc_name & type_name)
+
         result.add(n2)
 
         # simply call the class method from here
@@ -139,7 +184,11 @@ macro class*(head: expr, body: stmt): stmt {.immediate.} =
         var p: seq[PNimrodNode] = @[]
         for i in 1..n.params.len-1:
             p.add(n.params[i][0])
-        n.body = newStmtList(newCall(proc_name & type_name, p))
+        if is_assignment:
+            let dot = newDotExpr(ident(obj_reference), ident(proc_name & type_name))
+            n.body = newStmtList(newAssignment(dot, p[1]))
+        else:
+            n.body = newStmtList(newCall(proc_name & type_name, p))
 
         result.add(n)
 
@@ -174,11 +223,19 @@ macro class*(head: expr, body: stmt): stmt {.immediate.} =
 
   var type_decl: PNimrodNode
   if baseName == nil:
-    type_decl = quote do:
-      type `typeName` = ref object of RootObj
+    if export_class:
+        type_decl = quote do:
+          type `typeName`* = ref object of RootObj
+    else:
+        type_decl = quote do:
+          type `typeName` = ref object of RootObj
   else:
-    type_decl = quote do:
-      type `typeName` = ref object of `baseName`
+      if export_class:
+        type_decl = quote do:
+          type `typeName`* = ref object of `baseName`
+      else:
+        type_decl = quote do:
+          type `typeName` = ref object of `baseName`
 
   # Inspect the tree structure:
   #
@@ -199,7 +256,7 @@ macro class*(head: expr, body: stmt): stmt {.immediate.} =
   result.insert(0, type_decl)
 
 
-class Animal of RootObj:
+class Animal* of RootObj: #exports the class. Need to use RootObj for exports
   var name: string
   var age: int
   method stuff(s:string): string = s
@@ -220,14 +277,23 @@ class Tiger of Cat:
       echo "I am a new tiger"
   method vocalize: string =
       # no need for super.super!
-      self.vocalize_animal() & "Rawr!"
+      self.vocalize_animal() & "Rawr!" & self.vocalize_cat()
 
 if isMainModule:
     var animals: seq[Animal] = @[]
-    animals.add(new(Dog(name: "Sparky", age: 10)))
-    animals.add(new(Cat(name: "Mitten", age: 10)))
-    animals.add(new(Tiger(name: "Jean", age: 2)))
+    animals.add(new_class(Dog(name: "Sparky", age: 10)))
+    animals.add(new_class(Cat(name: "Mitten", age: 10)))
+    animals.add(new_class(Tiger(name: "Jean", age: 2)))
 
     for a in animals:
       echo a.name, " says ", a.vocalize()
       echo a.age_human_yrs()
+
+    # prints:
+    #   I am a new tiger
+    #   Sparky says woof
+    #   70
+    #   Mitten says ...meow
+    #   10
+    #   Jean says ...Rawr!...meow
+    #   2

@@ -6,9 +6,13 @@ These extensions aim to improve the usability of nim in practical applications.
 Extensions so far include:
 
 ## OOP macro
+
+  This module was modified from the OOP section on the excellent website http://nim-by-example.github.io/
+
   usage: 
   
   ```nim
+  import oop_macro
   class BaseObject: # inherits from RootObj
     # attributes/properties
     var
@@ -25,4 +29,9 @@ Extensions so far include:
         
       method override_me(argx: float): int=
         result = int(self.y) + int(argx) + self.x
+  ```
+
+  There's also an example in the code that demonstrates the inheritance that can be run by executing:
+  ```bash
+  nim c -r oop_macro.nim
   ```
