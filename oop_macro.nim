@@ -3,14 +3,21 @@ import strutils
 
 {.hint[XDeclaredButNotUsed]: off.}
 
-macro new_class*(obj: untyped): untyped=
+macro new*(obj: untyped): untyped=
     ## Creates a new instance of the class
     ## and calls the init() method on it
-    quote do:
-        var init_obj = `obj`
-        when compiles(init_obj.init()):
-            init_obj.init()
-        init_obj
+    if obj.kind == nnkObjConstr:
+        # Only if the node is an object constructor
+        result = quote do:
+            var init_obj = `obj`
+            when compiles(init_obj.init()):
+                init_obj.init()
+            init_obj
+    else:
+        # Otherwise, just revert to system.new
+        result = quote do:
+            var init_obj = `obj`
+            system.new(init_obj)
 
 
 macro class*(head: untyped, body: untyped): untyped=
@@ -281,9 +288,9 @@ class Tiger of Cat:
 
 if isMainModule:
     var animals: seq[Animal] = @[]
-    animals.add(new_class(Dog(name: "Sparky", age: 10)))
-    animals.add(new_class(Cat(name: "Mitten", age: 10)))
-    animals.add(new_class(Tiger(name: "Jean", age: 2)))
+    animals.add(new Dog(name: "Sparky", age: 10))
+    animals.add(new Cat(name: "Mitten", age: 10))
+    animals.add(new Tiger(name: "Jean", age: 2))
 
     for a in animals:
       echo a.name, " says ", a.vocalize()
