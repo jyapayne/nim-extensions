@@ -3,7 +3,7 @@ import strutils
 
 {.hint[XDeclaredButNotUsed]: off.}
 
-macro new*(obj: untyped): untyped=
+macro new*(obj: untyped): untyped {.immediate.}=
     ## Creates a new instance of the class
     ## and calls the init() method on it
     if obj.kind == nnkObjConstr:
@@ -24,9 +24,6 @@ macro new*(obj: untyped): untyped=
 
 
 macro class*(head: untyped, body: untyped): untyped=
-  # The macro is immediate so that it doesn't
-  # resolve identifiers passed to it
-
   # object reference name inside methods.
   # ie: self, self
   let obj_reference = "self"
