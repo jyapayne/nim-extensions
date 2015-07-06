@@ -21,26 +21,26 @@ macro new*(obj: untyped): untyped {.immediate.}=
         args.add(self_eq)
 
         for ch in obj.children:
-                if ch.kind == nnkExprColonExpr:
-                        # some_arg = some_val
-                        args.add(newNimNode(nnkExprEqExpr).add(ch[0], ch[1]))
+            if ch.kind == nnkExprColonExpr:
+                # some_arg = some_val
+                args.add(newNimNode(nnkExprEqExpr).add(ch[0], ch[1]))
 
         # init(self=init_obj, some_arg=someval, ...)
         var init_call = newCall(ident"init", args)
 
         template new_object(symbol, obj_node, init_func)=
-                var symbol = obj_node
-                when compiles(init_func):
-                        init_func
-                symbol
+            var symbol = obj_node
+            when compiles(init_func):
+                init_func
+            symbol
 
         result = getAst(new_object(sym, new_obj, init_call))
     else:
         # otherwise, just call system.new on the object
         # since we don't care about it
         template new_object(obj)=
-                var init_obj = obj
-                system.new(init_obj)
+            var init_obj = obj
+            system.new(init_obj)
         result = getAst(new_object(obj))
 
 
