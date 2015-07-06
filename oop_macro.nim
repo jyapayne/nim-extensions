@@ -8,16 +8,19 @@ macro new*(obj: untyped): untyped=
     ## and calls the init() method on it
     if obj.kind == nnkObjConstr:
         # Only if the node is an object constructor
-        result = quote do:
-            var init_obj = `obj`
+        template init_object(obj)=
+            var init_obj = obj
             when compiles(init_obj.init()):
                 init_obj.init()
             init_obj
+        result = getAst(init_object(obj))
     else:
         # Otherwise, just revert to system.new
-        result = quote do:
-            var init_obj = `obj`
+        template init_object(obj)=
+            var init_obj = obj
             system.new(init_obj)
+
+        result = getAst(init_object(obj))
 
 
 macro class*(head: untyped, body: untyped): untyped=
@@ -29,7 +32,7 @@ macro class*(head: untyped, body: untyped): untyped=
   let obj_reference = "self"
   var export_class: bool = false # whether or not to export the class to other modules
 
-  var typeName, baseName: PNimrodNode
+  var typeName, baseName: NimNode
 
   if head.kind == nnkIdent:
     # `head` is expression `typeName`
@@ -188,7 +191,7 @@ macro class*(head: untyped, body: untyped): untyped=
         # simply call the class method from here
         # proc procName=
         #    procName_ClassName()
-        var p: seq[PNimrodNode] = @[]
+        var p: seq[NimNode] = @[]
         for i in 1..n.params.len-1:
             p.add(n.params[i][0])
         if is_assignment:
@@ -228,21 +231,23 @@ macro class*(head: untyped, body: untyped): untyped=
   #             Ident !"int"
   #             Empty
 
-  var type_decl: PNimrodNode
+  var type_decl: NimNode
+
+  template declare_type_export(tname, bname)=
+      type tname* = ref object of bname
+  template declare_type(tname, bname)=
+      type tname = ref object of bname
+
   if baseName == nil:
     if export_class:
-        type_decl = quote do:
-          type `typeName`* = ref object of RootObj
+        type_decl = getAst(declare_type_export(typeName, RootObj))
     else:
-        type_decl = quote do:
-          type `typeName` = ref object of RootObj
+        type_decl = getAst(declare_type(typeName, RootObj))
   else:
       if export_class:
-        type_decl = quote do:
-          type `typeName`* = ref object of `baseName`
+        type_decl = getAst(declare_type_export(typeName, baseName))
       else:
-        type_decl = quote do:
-          type `typeName` = ref object of `baseName`
+        type_decl = getAst(declare_type(typeName, baseName))
 
   # Inspect the tree structure:
   #
