@@ -6,50 +6,50 @@ import strutils
 macro new*(obj: untyped): untyped {.immediate.}=
   if obj.kind == nnkObjConstr or obj.kind == nnkCall:
     var args: seq[NimNode] = @[]
-    var new_obj = copyNimTree(obj)
+    var newObj = copyNimTree(obj)
 
     # delete the parameters from the object
     # since we are going to use init() instead
-    new_obj.del(1, len(new_obj)-1)
+    newObj.del(1, len(newObj)-1)
 
     # create a symbol that we can use
-    var sym = genSym(nskVar, "init_obj")
+    var sym = genSym(nskVar, "initObj")
 
-    # self = init_obj
-    var self_eq = newNimNode(nnkExprEqExpr).add(ident"self", sym)
+    # self = initObj
+    var selfEq = newNimNode(nnkExprEqExpr).add(ident"self", sym)
 
-    args.add(self_eq)
+    args.add(selfEq)
 
     for ch in obj.children:
       if ch.kind == nnkExprColonExpr:
-        # some_arg = some_val
+        # someArg = someVal
         args.add(newNimNode(nnkExprEqExpr).add(ch[0], ch[1]))
 
-    # init(self=init_obj, some_arg=someval, ...)
-    var init_call = newCall(ident"init", args)
+    # init(self=initObj, someArg=someval, ...)
+    var initCall = newCall(ident"init", args)
 
-    template new_object(symbol, obj_node, init_func)=
-      var symbol = obj_node
-      when compiles(init_func):
-        init_func
+    template newObject(symbol, objNode, initFunc)=
+      var symbol = objNode
+      when compiles(initFunc):
+        initFunc
       symbol
 
-    result = getAst(new_object(sym, new_obj, init_call))
+    result = getAst(newObject(sym, newObj, initCall))
   else:
     # otherwise, just call system.new on the object
     # since we don't care about it
-    template new_object(obj)=
-      var init_obj = obj
-      system.new(init_obj)
-    result = getAst(new_object(obj))
+    template newObject(obj)=
+      var initObj = obj
+      system.new(initObj)
+    result = getAst(newObject(obj))
 
 
 macro class*(head: untyped, body: untyped): untyped =
   
   # object reference name inside methods.
   # ie: self, self
-  let obj_reference = "self"
-  var export_class: bool = false
+  let objReference = "self"
+  var exportClass: bool = false
 
   var typeName, baseName: NimNode
 
@@ -80,11 +80,11 @@ macro class*(head: untyped, body: untyped): untyped =
     #  Prefix
     #  Ident !"of"
     #  Ident !"RootObj"
-    export_class = true
+    exportClass = true
     typeName = head[1]
     baseName = head[2][1]
   elif head.kind == nnkInfix and $head[0] == "*":
-    export_class = true
+    exportClass = true
     typeName = head[1]
   else:
     quit "Invalid node: " & head.lispRepr
@@ -112,7 +112,7 @@ macro class*(head: untyped, body: untyped): untyped =
   #   StmtList
   #     StrLit ...
   # MethodDef
-  #   Ident !"age_human_yrs"
+  #   Ident !"ageHumanYrs"
   #   Empty
   #   Empty
   #   FormalParams
@@ -138,20 +138,20 @@ macro class*(head: untyped, body: untyped): untyped =
   #          return `baseName`(self)
   #   result.add(super)
 
-  template set_node_name(n2, proc_name, type_name)=
+  template setNodeName(n2, procName, typeName)=
     if n2.name.kind == nnkIdent:
-      proc_name = $(n2.name.toStrLit())
-      n2.name = ident(proc_name & type_name)
+      procName = $(n2.name.toStrLit())
+      n2.name = ident(procName & typeName)
     elif n2.name.kind == nnkPostFix:
       if n2.name[1].kind == nnkIdent:
-        proc_name = $(n2.name[1].toStrLit())
-        n2.name[1] = ident(proc_name & type_name)
+        procName = $(n2.name[1].toStrLit())
+        n2.name[1] = ident(procName & typeName)
       elif n2.name[1].kind == nnkAccQuoted:
-        proc_name = $(n2.name[1][0].toStrLit())
-        n2.name[1][0] = ident(proc_name & type_name)
+        procName = $(n2.name[1][0].toStrLit())
+        n2.name[1][0] = ident(procName & typeName)
     elif n2.name.kind == nnkAccQuoted:
-      proc_name = $(n2.name[0].toStrLit())
-      n2.name[0] = ident(proc_name & type_name)
+      procName = $(n2.name[0].toStrLit())
+      n2.name[0] = ident(procName & typeName)
     result.add(n2)
 
   # Make forward declarations so that function order
@@ -161,7 +161,7 @@ macro class*(head: untyped, body: untyped): untyped =
       of nnkMethodDef, nnkProcDef:
         # inject `self: T` into the arguments
         let n = copyNimTree(node)
-        n.params.insert(1, newIdentDefs(ident(obj_reference), typeName))
+        n.params.insert(1, newIdentDefs(ident(objReference), typeName))
         # clear the body so we only get a
         # declaration
         n.body = newEmptyNode()
@@ -169,10 +169,10 @@ macro class*(head: untyped, body: untyped): untyped =
 
         # forward declare the inheritable method
         let n2 = copyNimTree(n)
-        let type_name = $(typeName.toStrLit())
-        var proc_name = ""
+        let typeName = $(typeName.toStrLit())
+        var procName = ""
 
-        set_node_name(n2, proc_name, type_name)
+        setNodeName(n2, procName, typeName)
       else:
         discard
 
@@ -183,18 +183,18 @@ macro class*(head: untyped, body: untyped): untyped =
       of nnkMethodDef, nnkProcDef:
         # inject `self: T` into the arguments
         let n = copyNimTree(node)
-        n.params.insert(1, newIdentDefs(ident(obj_reference), typeName))
+        n.params.insert(1, newIdentDefs(ident(objReference), typeName))
 
         # Copy the proc or method for inheritance
         # ie: procName_ClassName()
         let n2 = copyNimTree(node)
-        n2.params.insert(1, newIdentDefs(ident(obj_reference), typeName))
+        n2.params.insert(1, newIdentDefs(ident(objReference), typeName))
 
-        let type_name = $(typeName.toStrLit())
-        var proc_name = $(n2.name.toStrLit())
-        var is_assignment = proc_name.contains("=")
+        let typeName = $(typeName.toStrLit())
+        var procName = $(n2.name.toStrLit())
+        var isAssignment = procName.contains("=")
 
-        set_node_name(n2, proc_name, type_name)
+        setNodeName(n2, procName, typeName)
 
         # simply call the class method from here
         # proc procName=
@@ -202,11 +202,11 @@ macro class*(head: untyped, body: untyped): untyped =
         var p: seq[NimNode] = @[]
         for i in 1..n.params.len-1:
           p.add(n.params[i][0])
-        if is_assignment:
-          let dot = newDotExpr(ident(obj_reference), ident(proc_name & type_name))
+        if isAssignment:
+          let dot = newDotExpr(ident(objReference), ident(procName & typeName))
           n.body = newStmtList(newAssignment(dot, p[1]))
         else:
-          n.body = newStmtList(newCall(proc_name & type_name, p))
+          n.body = newStmtList(newCall(procName & typeName, p))
 
         result.add(n)
 
@@ -239,27 +239,27 @@ macro class*(head: untyped, body: untyped): untyped =
   #           Ident !"int"
   #           Empty
 
-  var type_decl: NimNode
+  var typeDecl: NimNode
 
-  template declare_type_export(tname, bname)=
+  template declareTypeExport(tname, bname)=
     type tname* = ref object of bname
-  template declare_type(tname, bname)=
+  template declareType(tname, bname)=
     type tname = ref object of bname
 
   if baseName == nil:
-    if export_class:
-      type_decl = getAst(declare_type_export(typeName, RootObj))
+    if exportClass:
+      typeDecl = getAst(declareTypeExport(typeName, RootObj))
     else:
-      type_decl = getAst(declare_type(typeName, RootObj))
+      typeDecl = getAst(declareType(typeName, RootObj))
   else:
-    if export_class:
-      type_decl = getAst(declare_type_export(typeName, baseName))
+    if exportClass:
+      typeDecl = getAst(declareTypeExport(typeName, baseName))
     else:
-      type_decl = getAst(declare_type(typeName, baseName))
+      typeDecl = getAst(declareType(typeName, baseName))
 
   # Inspect the tree structure:
   #
-  # echo type_decl.treeRepr
+  # echo typeDecl.treeRepr
   # --------------------
   # StmtList
   #   TypeSection
@@ -272,8 +272,8 @@ macro class*(head: untyped, body: untyped): untyped =
   #           OfInherit
   #             Ident !"RootObj"
   #           Empty   <= We want to replace self
-  type_decl[0][0][2][0][2] = recList
-  result.insert(0, type_decl)
+  typeDecl[0][0][2][0][2] = recList
+  result.insert(0, typeDecl)
 
 
 class Animal of RootObj:
@@ -288,24 +288,24 @@ class Animal of RootObj:
 
   method stuff(s:string): string = s
   method vocalize: string = "..."
-  method age_human_yrs: int = self.age # `self` is injected
+  method ageHumanYrs: int = self.age # `self` is injected
 
 class Dog of Animal:
   method vocalize: string = "woof"
-  method age_human_yrs: int = self.age * 7
+  method ageHumanYrs: int = self.age * 7
 
 class Cat of Animal:
   method vocalize: string =
     # call the base class method
-    self.vocalize_animal() & "meow"
+    self.vocalizeAnimal() & "meow"
 
 class Tiger of Cat:
   method init(name: string="Bob", age: int)=
-    self.init_animal(name, age)
+    self.initAnimal(name, age)
     echo "I am a new tiger"
   method vocalize: string =
     # no need for super.super!
-    self.vocalize_animal() & "Rawr!"
+    self.vocalizeAnimal() & "Rawr!"
 
 if isMainModule:
   var animals: seq[Animal] = @[]
@@ -315,7 +315,7 @@ if isMainModule:
 
   for a in animals:
     echo a.name, " says ", a.vocalize()
-    echo a.age_human_yrs()
+    echo a.ageHumanYrs()
 
   # prints:
   #   I am a new Animal, Sparky
