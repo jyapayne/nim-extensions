@@ -173,6 +173,8 @@ macro class*(head: untyped, body: untyped): untyped =
         var procName = ""
 
         setNodeName(n2, procName, typeName)
+        # add the base pragma when it's a base method
+        n2[4] = newNimNode(nnkPragma).add(ident"base")
       else:
         discard
 
@@ -183,11 +185,16 @@ macro class*(head: untyped, body: untyped): untyped =
       of nnkMethodDef, nnkProcDef:
         # inject `self: T` into the arguments
         let n = copyNimTree(node)
+        # clear pragma since we forward declared already
+        n[4] = newEmptyNode()
         n.params.insert(1, newIdentDefs(ident(objReference), typeName))
 
         # Copy the proc or method for inheritance
         # ie: procName_ClassName()
         let n2 = copyNimTree(node)
+
+        # clear pragma since we forward declared already
+        n2[4] = newEmptyNode()
         n2.params.insert(1, newIdentDefs(ident(objReference), typeName))
 
         let typeName = $(typeName.toStrLit())
@@ -275,39 +282,38 @@ macro class*(head: untyped, body: untyped): untyped =
   typeDecl[0][0][2][0][2] = recList
   result.insert(0, typeDecl)
 
+when isMainModule:
+  class Animal of RootObj:
+    var
+      name: string
+      age: int
 
-class Animal of RootObj:
-  var
-    name: string
-    age: int
+    method init*(name: string, age: int)=
+      self.name = name
+      self.age = age
+      echo "I am a new Animal, ", self.name
 
-  method init*(name: string, age: int)=
-    self.name = name
-    self.age = age
-    echo "I am a new Animal, ", self.name
+    method stuff(s:string): string = s
+    method vocalize: string = "..."
+    method ageHumanYrs: int = self.age # `self` is injected
 
-  method stuff(s:string): string = s
-  method vocalize: string = "..."
-  method ageHumanYrs: int = self.age # `self` is injected
+  class Dog of Animal:
+    method vocalize: string = "woof"
+    method ageHumanYrs: int = self.age * 7
 
-class Dog of Animal:
-  method vocalize: string = "woof"
-  method ageHumanYrs: int = self.age * 7
+  class Cat of Animal:
+    method vocalize: string =
+      # call the base class method
+      self.vocalizeAnimal() & "meow"
 
-class Cat of Animal:
-  method vocalize: string =
-    # call the base class method
-    self.vocalizeAnimal() & "meow"
+  class Tiger of Cat:
+    method init(name: string="Bob", age: int)=
+      self.initAnimal(name, age)
+      echo "I am a new tiger"
+    method vocalize: string =
+      # no need for super.super!
+      self.vocalizeAnimal() & "Rawr!"
 
-class Tiger of Cat:
-  method init(name: string="Bob", age: int)=
-    self.initAnimal(name, age)
-    echo "I am a new tiger"
-  method vocalize: string =
-    # no need for super.super!
-    self.vocalizeAnimal() & "Rawr!"
-
-if isMainModule:
   var animals: seq[Animal] = @[]
   animals.add(new Dog(name: "Sparky", age: 10))
   animals.add(new Cat(name: "Mitten", age: 10))
