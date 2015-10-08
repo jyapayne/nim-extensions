@@ -222,7 +222,6 @@ macro class*(head: untyped, body: untyped): untyped =
       of nnkIteratorDef, nnkConverterDef, nnkMacroDef, nnkTemplateDef:
         # inject `self: T` into the arguments
         let n = copyNimTree(node)
-        echo n.treeRepr
         n[3].insert(1, newIdentDefs(ident(objReference), typeName))
         result.insert(numRes, n)
         numRes += 1
@@ -291,7 +290,6 @@ macro class*(head: untyped, body: untyped): untyped =
   #           Empty   <= We want to replace self
   typeDecl[0][0][2][0][2] = recList
   result.insert(0, typeDecl)
-  echo result.toStrLit()
 
 when isMainModule:
   class Animal of RootObj:
