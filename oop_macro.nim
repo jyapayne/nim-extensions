@@ -174,10 +174,12 @@ macro class*(head: untyped, body: untyped): untyped =
 
         setNodeName(n2, procName, typeName)
         # add the base pragma when it's a base method
-        n2[4] = newNimNode(nnkPragma).add(ident"base")
+        if node.kind == nnkMethodDef:
+          n2[4] = newNimNode(nnkPragma).add(ident"base")
       else:
         discard
 
+  var numRes = result.len()
   # Iterate over the statements, adding `self: T`
   # to the parameters of functions
   for node in body.children:
@@ -216,6 +218,14 @@ macro class*(head: untyped, body: untyped): untyped =
           n.body = newStmtList(newCall(procName & typeName, p))
 
         result.add(n)
+
+      of nnkIteratorDef, nnkConverterDef, nnkMacroDef, nnkTemplateDef:
+        # inject `self: T` into the arguments
+        let n = copyNimTree(node)
+        echo n.treeRepr
+        n[3].insert(1, newIdentDefs(ident(objReference), typeName))
+        result.insert(numRes, n)
+        numRes += 1
 
       of nnkVarSection:
         # variables get turned into fields of the type.
@@ -281,6 +291,7 @@ macro class*(head: untyped, body: untyped): untyped =
   #           Empty   <= We want to replace self
   typeDecl[0][0][2][0][2] = recList
   result.insert(0, typeDecl)
+  echo result.toStrLit()
 
 when isMainModule:
   class Animal of RootObj:
