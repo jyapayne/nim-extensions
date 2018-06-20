@@ -288,7 +288,7 @@ macro class*(head: untyped, body: untyped): untyped =
   #           OfInherit
   #             Ident !"RootObj"
   #           Empty   <= We want to replace self
-  typeDecl[0][0][2][0][2] = recList
+  typeDecl#[[0]]#[0][2][0][2] = recList
   result.insert(0, typeDecl)
 
 when isMainModule:
