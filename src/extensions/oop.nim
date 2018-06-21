@@ -3,7 +3,7 @@ import strutils
 
 {.hint[XDeclaredButNotUsed]: off.}
 
-macro new*(obj: untyped): untyped {.immediate.}=
+macro new*(obj: untyped): untyped =
   if obj.kind == nnkObjConstr or obj.kind == nnkCall:
     var args: seq[NimNode] = @[]
     var newObj = copyNimTree(obj)
@@ -45,7 +45,7 @@ macro new*(obj: untyped): untyped {.immediate.}=
 
 
 macro class*(head: untyped, body: untyped): untyped =
-  
+
   # object reference name inside methods.
   # ie: self, self
   let objReference = "self"
@@ -288,58 +288,5 @@ macro class*(head: untyped, body: untyped): untyped =
   #           OfInherit
   #             Ident !"RootObj"
   #           Empty   <= We want to replace self
-  typeDecl#[[0]]#[0][2][0][2] = recList
+  typeDecl[0][2][0][2] = recList
   result.insert(0, typeDecl)
-
-when isMainModule:
-  class Animal of RootObj:
-    var
-      name: string
-      age: int
-
-    method init*(name: string, age: int)=
-      self.name = name
-      self.age = age
-      echo "I am a new Animal, ", self.name
-
-    method stuff(s:string): string = s
-    method vocalize: string = "..."
-    method ageHumanYrs: int = self.age # `self` is injected
-
-  class Dog of Animal:
-    method vocalize: string = "woof"
-    method ageHumanYrs: int = self.age * 7
-
-  class Cat of Animal:
-    method vocalize: string =
-      # call the base class method
-      self.vocalizeAnimal() & "meow"
-
-  class Tiger of Cat:
-    method init(name: string="Bob", age: int)=
-      self.initAnimal(name, age)
-      echo "I am a new tiger"
-    method vocalize: string =
-      # no need for super.super!
-      self.vocalizeAnimal() & "Rawr!"
-
-  var animals: seq[Animal] = @[]
-  animals.add(new Dog(name: "Sparky", age: 10))
-  animals.add(new Cat(name: "Mitten", age: 10))
-  animals.add(new Tiger(name: "Jean", age: 2))
-
-  for a in animals:
-    echo a.name, " says ", a.vocalize()
-    echo a.ageHumanYrs()
-
-  # prints:
-  #   I am a new Animal, Sparky
-  #   I am a new Animal, Mitten
-  #   I am a new Animal, Jean
-  #   I am a new tiger
-  #   Sparky says woof
-  #   70
-  #   Mitten says ...meow
-  #   10
-  #   Jean says ...Rawr!
-  #   2

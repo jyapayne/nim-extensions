@@ -1,4 +1,4 @@
-import extensions/oop_macro
+import extensions/oop
 
 import strutils
 

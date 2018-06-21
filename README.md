@@ -1,7 +1,7 @@
 # nim-extensions
-Extensions for the nim programming language.
+Extensions for the Nim programming language.
 
-These extensions aim to improve the usability of nim in practical applications.
+These extensions aim to improve the usability of Nim in practical applications.
 
 Extensions so far include:
 
@@ -12,7 +12,7 @@ Extensions so far include:
   usage: 
   
   ```nim
-  import oop_macro
+  import extensions/oop
   class BaseObject: # inherits from RootObj
     # attributes/properties
     var
@@ -33,5 +33,5 @@ Extensions so far include:
 
   There's also an example in the code that demonstrates the inheritance that can be run by executing:
   ```bash
-  nim c -r oop_macro.nim
+  nim c -r tests/test1.nim
   ```
