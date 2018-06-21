@@ -1,8 +1,8 @@
-import oop_macro
-  
+import extensions/oop_macro
+
 import strutils
 
-var 
+var
   output = ""
 
 class Animal of RootObj:
@@ -10,7 +10,7 @@ class Animal of RootObj:
     name: string
     age: int
 
-  
+
   method init*(name: string, age: int){.base.}=
     self.name = name
     self.age = age
@@ -63,4 +63,4 @@ echo check
 echo "####"
 echo output
 echo "####"
-doAssert(output==check,"""echo matches""")  
+doAssert(output==check,"""echo matches""")

@@ -1,8 +1,8 @@
 # Package
 
-version       = "0.1.0"
-author        = "CodeDoes"
-description   = "OOP macro"
+version       = "0.2.0"
+author        = "Joey Yakimowich-Payne"
+description   = "Nim extensions"
 license       = "MIT"
 srcDir        = "src"
 
