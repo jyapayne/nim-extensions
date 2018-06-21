@@ -277,7 +277,6 @@ macro class*(head: untyped, body: untyped): untyped =
   #
   # echo typeDecl.treeRepr
   # --------------------
-  # StmtList
   #   TypeSection
   #     TypeDef
   #       Ident !"Animal"
