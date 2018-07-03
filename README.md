@@ -38,7 +38,7 @@ Extensions so far include:
 
 ## Enumerate
 
-    This macro is useful for enumerating on any iterator. It will autodetect which iterator you want to use and give you a useful enumeration.
+  This macro is useful for enumerating on any iterator. It will autodetect which iterator you want to use and give you a useful enumeration.
 
   Usage:
 
