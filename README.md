@@ -9,7 +9,7 @@ Extensions so far include:
 
   This module was modified from the OOP section on the excellent website http://nim-by-example.github.io/
 
-  usage: 
+  Usage: 
   
   ```nim
   import extensions/oop
@@ -35,3 +35,21 @@ Extensions so far include:
   ```bash
   nim c -r tests/test1.nim
   ```
+
+## Enumerate
+
+    This macro is useful for enumerating on any iterator. It will autodetect which iterator you want to use and give you a useful enumeration.
+
+  Usage:
+
+  ```nim
+  import os
+  import extensions/enumerate
+
+  for i, line in enumerate(lines, "file.txt"):
+      echo i, " ", line
+
+  for i, tup in enumerate(walkDir, "."):
+      echo i, " ", tup
+  ```
+
