@@ -20,15 +20,15 @@ Extensions so far include:
       x: int
       y: float
       
-    method override_me(argx: float): int=
+    method override_me(argx: float): int =
       result = int(argx) + self.x
       
   class ClassName of BaseObject:
-      method method_name(arg1: int, arg2: float=0.3): float=
+      method method_name(arg1: int, arg2: float=0.3): float =
         ## do stuff here
         result = arg2
         
-      method override_me(argx: float): int=
+      method override_me(argx: float): int =
         result = int(self.y) + int(argx) + self.x
   ```
 
