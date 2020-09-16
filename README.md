@@ -53,3 +53,22 @@ Extensions so far include:
       echo i, " ", tup
   ```
 
+## Objprint
+
+These printing procs are useful for printing objects and their types.
+
+```nim
+import objprint
+
+type Unit = ref object
+  name: string
+
+echo Unit(name: "Ref")
+echo Unit(name: "Non-ref")[]
+echo (str: "value")
+
+# Prints:
+#. ref Unit(name: "Ref")
+#. Unit(name: "Non-ref")
+#. tuple[str: string](str: "value")
+```
