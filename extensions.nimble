@@ -1,6 +1,6 @@
 # Package
 
-version       = "0.2.1"
+version       = "0.2.2"
 author        = "Joey Yakimowich-Payne"
 description   = "Nim extensions. Includes an object oriented programming (oop, class) macro"
 license       = "MIT"
