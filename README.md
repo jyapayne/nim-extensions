@@ -12,7 +12,8 @@ Extensions so far include:
   Usage: 
   
   ```nim
-  import extensions/oop
+  import extensions / oop
+  
   class BaseObject: # inherits from RootObj
     # attributes/properties
     var
@@ -44,7 +45,7 @@ Extensions so far include:
 
   ```nim
   import os
-  import extensions/enumerate
+  import extensions / enumerate
 
   for i, line in enumerate(lines, "file.txt"):
       echo i, " ", line
@@ -58,7 +59,7 @@ Extensions so far include:
 These printing procs are useful for printing objects and their types.
 
 ```nim
-import objprint
+import extensions / objprint
 
 type Unit = ref object
   name: string
@@ -68,7 +69,7 @@ echo Unit(name: "Non-ref")[]
 echo (str: "value")
 
 # Prints:
-#. ref Unit(name: "Ref")
-#. Unit(name: "Non-ref")
-#. tuple[str: string](str: "value")
+#  ref Unit(name: "Ref")
+#  Unit(name: "Non-ref")
+#  tuple[str: string](str: "value")
 ```
